@@ -1,0 +1,721 @@
+openapi: 3.0.3
+info:
+  title: TX-BE Semantic Search & AI Analysis API
+  description: Semantic search and AI analysis endpoints for document and project analysis
+  version: 1.0.0
+  contact:
+    name: TX-BE API Support
+    email: support@tx-be.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.tx-be.com
+    description: Production server
+  - url: https://staging-api.tx-be.com
+    description: Staging server
+  - url: http://localhost:3000
+    description: Local development server
+
+tags:
+  - name: Search
+    description: Semantic search operations across project content
+  - name: Analysis
+    description: AI-powered document and content analysis
+
+paths:
+  /api/v1/projects/{projectId}/search:
+    post:
+      tags:
+        - Search
+      summary: Perform semantic search
+      description: Perform semantic search across project documents and content
+      operationId: semanticSearch
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          description: Project ID
+          schema:
+            type: string
+            pattern: '^proj_[a-zA-Z0-9\-]+$'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SemanticSearchRequest'
+            example:
+              query: "authentication and security requirements"
+              searchScope: ["documents", "research", "clarifications"]
+              resultLimit: 10
+              includeContext: true
+      responses:
+        '200':
+          description: Search completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SemanticSearchResponse'
+        '400':
+          description: Invalid search query
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/projects/{projectId}/documents/{docId}/analyze:
+    post:
+      tags:
+        - Analysis
+      summary: Analyze document
+      description: Perform deep analysis on a specific document
+      operationId: analyzeDocument
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          description: Project ID
+          schema:
+            type: string
+            pattern: '^proj_[a-zA-Z0-9\-]+$'
+        - name: docId
+          in: path
+          required: true
+          description: Document ID
+          schema:
+            type: string
+            pattern: '^doc_[a-zA-Z0-9]+$'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnalyzeDocumentRequest'
+            example:
+              analysisType: "comprehensive"
+              extractFeatures: true
+              identifyRequirements: true
+              generateSummary: true
+      responses:
+        '200':
+          description: Document analysis completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentAnalysisResponse'
+        '202':
+          description: Analysis started and is in progress
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Document analysis started"
+                  analysisId:
+                    type: string
+                    example: "analysis_789abc123def"
+                  estimatedCompletion:
+                    type: string
+                    format: date-time
+        '400':
+          description: Invalid analysis request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project or document not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/projects/{projectId}/documents/{docId}/similar:
+    get:
+      tags:
+        - Search
+      summary: Find similar content
+      description: Find similar content across project documents
+      operationId: findSimilarContent
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          description: Project ID
+          schema:
+            type: string
+            pattern: '^proj_[a-zA-Z0-9\-]+$'
+        - name: docId
+          in: path
+          required: true
+          description: Source document ID
+          schema:
+            type: string
+            pattern: '^doc_[a-zA-Z0-9]+$'
+        - name: threshold
+          in: query
+          description: Similarity threshold (0.0 to 1.0)
+          schema:
+            type: number
+            minimum: 0
+            maximum: 1
+            default: 0.7
+        - name: limit
+          in: query
+          description: Maximum number of results
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 5
+        - name: includeContext
+          in: query
+          description: Include context around matching content
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: Similar content found successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SimilarContentResponse'
+        '404':
+          description: Project or document not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/projects/{projectId}/extract:
+    post:
+      tags:
+        - Analysis
+      summary: Extract specific information
+      description: Extract specific information using AI analysis
+      operationId: extractInformation
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          description: Project ID
+          schema:
+            type: string
+            pattern: '^proj_[a-zA-Z0-9\-]+$'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExtractInformationRequest'
+            example:
+              extractionType: "business_requirements"
+              prompt: "Extract all business goals and success metrics from the project documents"
+              sources: ["documents", "research", "clarifications"]
+              outputFormat: "structured"
+      responses:
+        '200':
+          description: Information extraction completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExtractionResponse'
+        '202':
+          description: Extraction started and is in progress
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Information extraction started"
+                  extractionId:
+                    type: string
+                    example: "extract_abc123def456"
+                  estimatedCompletion:
+                    type: string
+                    format: date-time
+        '400':
+          description: Invalid extraction request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    SemanticSearchRequest:
+      type: object
+      required:
+        - query
+      properties:
+        query:
+          type: string
+          minLength: 3
+          maxLength: 500
+          description: Search query text
+          example: "authentication and security requirements"
+        searchScope:
+          type: array
+          items:
+            type: string
+            enum: [documents, research, clarifications, generated_content]
+          default: ["documents", "research", "clarifications"]
+          description: Scope of content to search within
+        resultLimit:
+          type: integer
+          minimum: 1
+          maximum: 50
+          default: 10
+          description: Maximum number of results to return
+        includeContext:
+          type: boolean
+          default: true
+          description: Whether to include surrounding context for results
+        minRelevanceScore:
+          type: number
+          minimum: 0
+          maximum: 1
+          default: 0.5
+          description: Minimum relevance score threshold
+
+    SemanticSearchResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          required:
+            - query
+            - results
+            - totalResults
+            - searchTime
+          properties:
+            query:
+              type: string
+              example: "authentication and security requirements"
+            results:
+              type: array
+              items:
+                $ref: '#/components/schemas/SearchResult'
+            totalResults:
+              type: integer
+              example: 8
+            searchTime:
+              type: string
+              example: "0.234s"
+
+    SearchResult:
+      type: object
+      required:
+        - source
+        - content
+        - relevanceScore
+      properties:
+        source:
+          type: string
+          enum: [document, research, clarification, generated_content]
+          example: "document"
+        docId:
+          type: string
+          example: "doc_987654321"
+        title:
+          type: string
+          example: "Requirements Document"
+        content:
+          type: string
+          example: "The system shall implement multi-factor authentication for admin users and secure token-based authentication for API access..."
+        relevanceScore:
+          type: number
+          minimum: 0
+          maximum: 1
+          example: 0.94
+        context:
+          type: object
+          properties:
+            pageNumber:
+              type: integer
+              example: 5
+            section:
+              type: string
+              example: "Security Requirements"
+            surroundingText:
+              type: string
+              example: "...user data protection measures. The system shall implement multi-factor authentication..."
+            researchArea:
+              type: string
+              example: "Technical Requirements"
+            generatedAt:
+              type: string
+              format: date-time
+              example: "2024-12-19T10:47:15.000Z"
+
+    AnalyzeDocumentRequest:
+      type: object
+      required:
+        - analysisType
+      properties:
+        analysisType:
+          type: string
+          enum: [basic, standard, comprehensive, custom]
+          description: Type of analysis to perform
+        extractFeatures:
+          type: boolean
+          default: true
+          description: Whether to extract product features
+        identifyRequirements:
+          type: boolean
+          default: true
+          description: Whether to identify requirements
+        generateSummary:
+          type: boolean
+          default: true
+          description: Whether to generate document summary
+        customPrompts:
+          type: array
+          items:
+            type: string
+          description: Custom analysis prompts for detailed extraction
+
+    DocumentAnalysisResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          required:
+            - docId
+            - analysisId
+            - completedAt
+          properties:
+            docId:
+              type: string
+              example: "doc_987654321"
+            analysisId:
+              type: string
+              example: "analysis_789abc123def"
+            completedAt:
+              type: string
+              format: date-time
+              example: "2024-12-19T12:00:00.000Z"
+            summary:
+              type: string
+              example: "This document outlines comprehensive requirements for an AI-powered customer support platform, focusing on core features like intelligent chat, knowledge base integration, and human handoff capabilities."
+            features:
+              type: array
+              items:
+                $ref: '#/components/schemas/ExtractedFeature'
+            requirements:
+              type: array
+              items:
+                $ref: '#/components/schemas/ExtractedRequirement'
+            keyTopics:
+              type: array
+              items:
+                type: string
+              example: ["customer support automation", "artificial intelligence", "real-time communication"]
+            technicalSpecs:
+              type: array
+              items:
+                $ref: '#/components/schemas/TechnicalSpec'
+
+    ExtractedFeature:
+      type: object
+      required:
+        - name
+        - description
+        - priority
+        - category
+      properties:
+        name:
+          type: string
+          example: "Multi-factor Authentication"
+        description:
+          type: string
+          example: "Secure login system with multiple verification methods"
+        priority:
+          type: string
+          enum: [low, medium, high, critical]
+          example: "high"
+        category:
+          type: string
+          example: "security"
+        pageReferences:
+          type: array
+          items:
+            type: integer
+          example: [5, 12]
+
+    ExtractedRequirement:
+      type: object
+      required:
+        - id
+        - type
+        - description
+        - priority
+        - source
+      properties:
+        id:
+          type: string
+          example: "REQ-001"
+        type:
+          type: string
+          enum: [functional, non-functional, security, performance, usability]
+          example: "functional"
+        description:
+          type: string
+          example: "The system shall respond to customer queries within 3 seconds"
+        priority:
+          type: string
+          enum: [low, medium, high, critical]
+          example: "high"
+        source:
+          type: string
+          example: "Page 4, Section 2.1"
+
+    TechnicalSpec:
+      type: object
+      required:
+        - component
+        - specification
+      properties:
+        component:
+          type: string
+          example: "Database"
+        specification:
+          type: string
+          example: "MongoDB for document storage, Redis for caching"
+        rationale:
+          type: string
+          example: "NoSQL flexibility for conversation data, fast caching for real-time responses"
+
+    SimilarContentResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          required:
+            - sourceDocId
+            - similarContent
+            - totalMatches
+            - searchParameters
+          properties:
+            sourceDocId:
+              type: string
+              example: "doc_987654321"
+            similarContent:
+              type: array
+              items:
+                $ref: '#/components/schemas/SimilarContentMatch'
+            totalMatches:
+              type: integer
+              example: 2
+            searchParameters:
+              type: object
+              properties:
+                threshold:
+                  type: number
+                  example: 0.7
+                algorithm:
+                  type: string
+                  example: "semantic_similarity"
+                processedAt:
+                  type: string
+                  format: date-time
+                  example: "2024-12-19T12:05:00.000Z"
+
+    SimilarContentMatch:
+      type: object
+      required:
+        - docId
+        - filename
+        - similarityScore
+        - matchingContent
+      properties:
+        docId:
+          type: string
+          example: "doc_123456789"
+        filename:
+          type: string
+          example: "market_research.docx"
+        similarityScore:
+          type: number
+          minimum: 0
+          maximum: 1
+          example: 0.82
+        matchingContent:
+          type: string
+          example: "Customer support automation and AI-powered chatbots are becoming essential for modern businesses..."
+        context:
+          type: object
+          properties:
+            section:
+              type: string
+              example: "Market Trends"
+            pageNumber:
+              type: integer
+              example: 3
+
+    ExtractInformationRequest:
+      type: object
+      required:
+        - extractionType
+        - prompt
+        - sources
+      properties:
+        extractionType:
+          type: string
+          enum: [business_requirements, technical_requirements, features, user_stories, success_metrics, constraints]
+          description: Type of information to extract
+        prompt:
+          type: string
+          minLength: 10
+          maxLength: 1000
+          description: Detailed prompt describing what to extract
+          example: "Extract all business goals and success metrics from the project documents"
+        sources:
+          type: array
+          items:
+            type: string
+            enum: [documents, research, clarifications, generated_content]
+          description: Sources to extract information from
+        outputFormat:
+          type: string
+          enum: [structured, narrative, bullet_points]
+          default: "structured"
+          description: Format for the extracted information
+
+    ExtractionResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          required:
+            - extractionId
+            - extractionType
+            - completedAt
+            - extractedContent
+            - confidence
+            - sourceReferences
+          properties:
+            extractionId:
+              type: string
+              example: "extract_abc123def456"
+            extractionType:
+              type: string
+              example: "business_requirements"
+            completedAt:
+              type: string
+              format: date-time
+              example: "2024-12-19T12:10:00.000Z"
+            extractedContent:
+              type: object
+              description: Structured extracted content (varies by extraction type)
+              example:
+                businessGoals:
+                  - goal: "Reduce customer response times from hours to seconds"
+                    source: "Project form submission"
+                    priority: "primary"
+                    measurable: true
+                successMetrics:
+                  - metric: "Average Response Time"
+                    target: "< 30 seconds"
+                    measurement: "System performance monitoring"
+                    source: "Requirements document"
+            confidence:
+              type: number
+              minimum: 0
+              maximum: 1
+              example: 0.89
+            sourceReferences:
+              type: array
+              items:
+                type: string
+              example: ["doc_987654321", "research_abc123def456", "clarify_xyz789abc123"]
+
+    ErrorResponse:
+      type: object
+      required:
+        - success
+        - error
+        - metadata
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              example: "RESOURCE_NOT_FOUND"
+            message:
+              type: string
+              example: "Project with ID 'proj_invalid-id' not found"
+            details:
+              type: object
+        metadata:
+          type: object
+          required:
+            - timestamp
+            - requestId
+          properties:
+            timestamp:
+              type: string
+              format: date-time
+              example: "2024-12-19T10:30:00Z"
+            requestId:
+              type: string
+              example: "req_12345678-90ab-cdef-1234-567890abcdef"
+            path:
+              type: string
+              example: "/api/v1/projects/proj_123/search"

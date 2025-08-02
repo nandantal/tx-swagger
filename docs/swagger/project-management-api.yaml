@@ -1,0 +1,653 @@
+openapi: 3.0.3
+info:
+  title: TX-BE Project Management API
+  description: Project management endpoints for the AI Product Development Assistant
+  version: 1.0.0
+  contact:
+    name: TX-BE API Support
+    email: support@tx-be.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.tx-be.com
+    description: Production server
+  - url: https://staging-api.tx-be.com
+    description: Staging server
+  - url: http://localhost:3000
+    description: Local development server
+
+tags:
+  - name: Projects
+    description: Project management operations
+
+paths:
+  /api/v1/projects:
+    post:
+      tags:
+        - Projects
+      summary: Create a new project
+      description: Create a new project with product information
+      operationId: createProject
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProjectRequest'
+            example:
+              productName: "AI-Powered Customer Support Chatbot Platform"
+              productDescription: "A SaaS solution designed to automate customer support operations for small to medium businesses using natural language processing and machine learning."
+              domain: "SaaS"
+              industry: "Customer Support"
+              budgetRange: "$50K - $100K"
+              timeline: "6-9 months"
+              targetMarket: "Small to medium businesses with 50-500 employees"
+              businessGoals: "Reduce customer response times from hours to seconds, improve customer satisfaction, and scale support operations without proportional increase in headcount."
+              uploadedDocuments: ["doc_123456", "doc_789012"]
+      responses:
+        '201':
+          description: Project created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateProjectResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      tags:
+        - Projects
+      summary: List all projects
+      description: List all projects with their status and progress
+      operationId: listProjects
+      parameters:
+        - name: page
+          in: query
+          description: Page number for pagination
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Number of items per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+        - name: status
+          in: query
+          description: Filter by project status
+          schema:
+            type: string
+            enum: [created, researching, clarifying, generating, completed]
+      responses:
+        '200':
+          description: Projects retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListProjectsResponse'
+
+  /api/v1/projects/{projectId}:
+    get:
+      tags:
+        - Projects
+      summary: Get project details
+      description: Get detailed information about a specific project
+      operationId: getProject
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          description: Project ID
+          schema:
+            type: string
+            pattern: '^proj_[a-zA-Z0-9\-]+$'
+      responses:
+        '200':
+          description: Project details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectDetailResponse'
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags:
+        - Projects
+      summary: Update project information
+      description: Update project information
+      operationId: updateProject
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          description: Project ID
+          schema:
+            type: string
+            pattern: '^proj_[a-zA-Z0-9\-]+$'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProjectRequest'
+      responses:
+        '200':
+          description: Project updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateProjectResponse'
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags:
+        - Projects
+      summary: Delete a project
+      description: Delete a project and all associated data
+      operationId: deleteProject
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          description: Project ID
+          schema:
+            type: string
+            pattern: '^proj_[a-zA-Z0-9\-]+$'
+      responses:
+        '200':
+          description: Project deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteProjectResponse'
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/projects/{projectId}/status:
+    get:
+      tags:
+        - Projects
+      summary: Get project status
+      description: Get overall project status and progress summary
+      operationId: getProjectStatus
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          description: Project ID
+          schema:
+            type: string
+            pattern: '^proj_[a-zA-Z0-9\-]+$'
+      responses:
+        '200':
+          description: Project status retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectStatusResponse'
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    CreateProjectRequest:
+      type: object
+      required:
+        - productName
+        - productDescription
+        - domain
+        - industry
+        - budgetRange
+        - timeline
+        - targetMarket
+        - businessGoals
+      properties:
+        productName:
+          type: string
+          minLength: 3
+          maxLength: 200
+          description: Name of the product
+        productDescription:
+          type: string
+          minLength: 10
+          maxLength: 2000
+          description: Detailed description of the product
+        domain:
+          type: string
+          enum: [SaaS, E-commerce, Healthcare, Finance, Education, Other]
+          description: Product domain
+        industry:
+          type: string
+          maxLength: 100
+          description: Industry sector
+        budgetRange:
+          type: string
+          enum: ["Under $10K", "$10K - $25K", "$25K - $50K", "$50K - $100K", "$100K - $250K", "$250K+"]
+          description: Budget range for the project
+        timeline:
+          type: string
+          enum: ["1-3 months", "3-6 months", "6-9 months", "9-12 months", "12+ months"]
+          description: Expected timeline
+        targetMarket:
+          type: string
+          maxLength: 500
+          description: Target market description
+        businessGoals:
+          type: string
+          maxLength: 1000
+          description: Business goals and objectives
+        uploadedDocuments:
+          type: array
+          items:
+            type: string
+          description: Array of uploaded document IDs
+
+    CreateProjectResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          required:
+            - projectId
+            - productName
+            - status
+            - nextStep
+            - createdAt
+          properties:
+            projectId:
+              type: string
+              example: "proj_a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+            productName:
+              type: string
+              example: "AI-Powered Customer Support Chatbot Platform"
+            status:
+              type: string
+              enum: [created, researching, clarifying, generating, completed]
+              example: "created"
+            nextStep:
+              type: string
+              example: "ai_research"
+            createdAt:
+              type: string
+              format: date-time
+              example: "2024-12-19T10:30:00.000Z"
+
+    ListProjectsResponse:
+      type: object
+      required:
+        - success
+        - data
+        - totalProjects
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProjectSummary'
+        totalProjects:
+          type: integer
+          example: 2
+
+    ProjectSummary:
+      type: object
+      required:
+        - projectId
+        - productName
+        - status
+        - createdAt
+        - lastActivity
+        - progress
+      properties:
+        projectId:
+          type: string
+          example: "proj_a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+        productName:
+          type: string
+          example: "AI-Powered Customer Support Chatbot Platform"
+        status:
+          type: string
+          enum: [created, researching, clarifying, generating, completed]
+          example: "completed"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-12-19T10:30:00.000Z"
+        lastActivity:
+          type: string
+          format: date-time
+          example: "2024-12-19T12:45:00.000Z"
+        progress:
+          type: object
+          required:
+            - research
+            - clarification
+            - generation
+          properties:
+            research:
+              type: boolean
+            clarification:
+              type: boolean
+            generation:
+              type: boolean
+
+    ProjectDetailResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/ProjectDetail'
+
+    ProjectDetail:
+      type: object
+      required:
+        - projectId
+        - productName
+        - productDescription
+        - domain
+        - industry
+        - budgetRange
+        - timeline
+        - targetMarket
+        - businessGoals
+        - status
+        - createdAt
+        - updatedAt
+        - progress
+        - uploadedDocuments
+      properties:
+        projectId:
+          type: string
+          example: "proj_a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+        productName:
+          type: string
+          example: "AI-Powered Customer Support Chatbot Platform"
+        productDescription:
+          type: string
+          example: "A SaaS solution designed to automate customer support operations..."
+        domain:
+          type: string
+          example: "SaaS"
+        industry:
+          type: string
+          example: "Customer Support"
+        budgetRange:
+          type: string
+          example: "$50K - $100K"
+        timeline:
+          type: string
+          example: "6-9 months"
+        targetMarket:
+          type: string
+          example: "Small to medium businesses with 50-500 employees"
+        businessGoals:
+          type: string
+          example: "Reduce customer response times from hours to seconds..."
+        status:
+          type: string
+          enum: [created, researching, clarifying, generating, completed]
+          example: "completed"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2024-12-19T10:30:00.000Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2024-12-19T12:45:00.000Z"
+        progress:
+          type: object
+          required:
+            - research
+            - clarification
+            - generation
+          properties:
+            research:
+              type: boolean
+            clarification:
+              type: boolean
+            generation:
+              type: boolean
+        uploadedDocuments:
+          type: array
+          items:
+            $ref: '#/components/schemas/UploadedDocument'
+
+    UploadedDocument:
+      type: object
+      required:
+        - docId
+        - filename
+        - uploadedAt
+      properties:
+        docId:
+          type: string
+          example: "doc_123456"
+        filename:
+          type: string
+          example: "existing_requirements.pdf"
+        uploadedAt:
+          type: string
+          format: date-time
+          example: "2024-12-19T10:31:00.000Z"
+
+    UpdateProjectRequest:
+      type: object
+      properties:
+        productDescription:
+          type: string
+          maxLength: 2000
+        budgetRange:
+          type: string
+          enum: ["Under $10K", "$10K - $25K", "$25K - $50K", "$50K - $100K", "$100K - $250K", "$250K+"]
+        businessGoals:
+          type: string
+          maxLength: 1000
+
+    UpdateProjectResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          required:
+            - projectId
+            - message
+            - updatedAt
+          properties:
+            projectId:
+              type: string
+              example: "proj_a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+            message:
+              type: string
+              example: "Project updated successfully"
+            updatedAt:
+              type: string
+              format: date-time
+              example: "2024-12-19T13:00:00.000Z"
+
+    DeleteProjectResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          required:
+            - projectId
+            - message
+            - deletedAt
+          properties:
+            projectId:
+              type: string
+              example: "proj_a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+            message:
+              type: string
+              example: "Project deleted successfully"
+            deletedAt:
+              type: string
+              format: date-time
+              example: "2024-12-19T13:15:00.000Z"
+
+    ProjectStatusResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          required:
+            - projectId
+            - status
+            - overallProgress
+            - phases
+            - lastActivity
+          properties:
+            projectId:
+              type: string
+              example: "proj_a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+            status:
+              type: string
+              enum: [created, researching, clarifying, generating, completed]
+              example: "completed"
+            overallProgress:
+              type: integer
+              minimum: 0
+              maximum: 100
+              example: 100
+            phases:
+              type: object
+              required:
+                - research
+                - clarification
+                - generation
+              properties:
+                research:
+                  $ref: '#/components/schemas/PhaseStatus'
+                clarification:
+                  $ref: '#/components/schemas/PhaseStatus'
+                generation:
+                  $ref: '#/components/schemas/PhaseStatus'
+            estimatedCompletion:
+              type: string
+              format: date-time
+              nullable: true
+            lastActivity:
+              type: string
+              format: date-time
+              example: "2024-12-19T12:45:00.000Z"
+
+    PhaseStatus:
+      type: object
+      required:
+        - status
+        - progress
+      properties:
+        status:
+          type: string
+          enum: [pending, in_progress, completed]
+          example: "completed"
+        progress:
+          type: integer
+          minimum: 0
+          maximum: 100
+          example: 100
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2024-12-19T11:00:00.000Z"
+
+    ErrorResponse:
+      type: object
+      required:
+        - success
+        - error
+        - metadata
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              example: "VALIDATION_ERROR"
+            message:
+              type: string
+              example: "Request validation failed"
+            details:
+              type: object
+        metadata:
+          type: object
+          required:
+            - timestamp
+            - requestId
+          properties:
+            timestamp:
+              type: string
+              format: date-time
+              example: "2024-12-19T10:30:00Z"
+            requestId:
+              type: string
+              example: "req_12345678-90ab-cdef-1234-567890abcdef"
+            path:
+              type: string
+              example: "/api/v1/projects"

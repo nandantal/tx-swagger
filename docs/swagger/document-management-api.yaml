@@ -1,0 +1,575 @@
+openapi: 3.0.3
+info:
+  title: TX-BE Document Management API
+  description: Document management endpoints for the AI Product Development Assistant
+  version: 1.0.0
+  contact:
+    name: TX-BE API Support
+    email: support@tx-be.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.tx-be.com
+    description: Production server
+  - url: https://staging-api.tx-be.com
+    description: Staging server
+  - url: http://localhost:3000
+    description: Local development server
+
+tags:
+  - name: Documents
+    description: Document upload, processing, and management operations
+
+paths:
+  /api/v1/projects/{projectId}/documents/upload:
+    post:
+      tags:
+        - Documents
+      summary: Upload a document
+      description: Upload a document for processing and analysis
+      operationId: uploadDocument
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          description: Project ID
+          schema:
+            type: string
+            pattern: '^proj_[a-zA-Z0-9\-]+$'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+                - filename
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: The file to upload
+                filename:
+                  type: string
+                  maxLength: 255
+                  description: Original filename
+                description:
+                  type: string
+                  maxLength: 500
+                  description: Optional description of the document
+      responses:
+        '201':
+          description: Document uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadDocumentResponse'
+        '400':
+          description: Invalid file or request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/projects/{projectId}/documents:
+    get:
+      tags:
+        - Documents
+      summary: List project documents
+      description: List all documents associated with a project
+      operationId: listDocuments
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          description: Project ID
+          schema:
+            type: string
+            pattern: '^proj_[a-zA-Z0-9\-]+$'
+      responses:
+        '200':
+          description: Documents retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListDocumentsResponse'
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/projects/{projectId}/documents/{docId}:
+    get:
+      tags:
+        - Documents
+      summary: Get document details
+      description: Get detailed information about a specific document
+      operationId: getDocument
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          description: Project ID
+          schema:
+            type: string
+            pattern: '^proj_[a-zA-Z0-9\-]+$'
+        - name: docId
+          in: path
+          required: true
+          description: Document ID
+          schema:
+            type: string
+            pattern: '^doc_[a-zA-Z0-9]+$'
+      responses:
+        '200':
+          description: Document details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentDetailResponse'
+        '404':
+          description: Document or project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags:
+        - Documents
+      summary: Delete a document
+      description: Delete a document and its processed content
+      operationId: deleteDocument
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          description: Project ID
+          schema:
+            type: string
+            pattern: '^proj_[a-zA-Z0-9\-]+$'
+        - name: docId
+          in: path
+          required: true
+          description: Document ID
+          schema:
+            type: string
+            pattern: '^doc_[a-zA-Z0-9]+$'
+      responses:
+        '200':
+          description: Document deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteDocumentResponse'
+        '404':
+          description: Document or project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/projects/{projectId}/documents/{docId}/content:
+    get:
+      tags:
+        - Documents
+      summary: Get document content
+      description: Get extracted and processed content from a document
+      operationId: getDocumentContent
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          description: Project ID
+          schema:
+            type: string
+            pattern: '^proj_[a-zA-Z0-9\-]+$'
+        - name: docId
+          in: path
+          required: true
+          description: Document ID
+          schema:
+            type: string
+            pattern: '^doc_[a-zA-Z0-9]+$'
+      responses:
+        '200':
+          description: Document content retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentContentResponse'
+        '404':
+          description: Document or project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '202':
+          description: Document still processing
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "Document is still being processed"
+                  processingStatus:
+                    type: string
+                    example: "processing"
+
+components:
+  schemas:
+    UploadDocumentResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          required:
+            - docId
+            - filename
+            - size
+            - mimeType
+            - uploadedAt
+            - processingStatus
+            - estimatedProcessingTime
+          properties:
+            docId:
+              type: string
+              example: "doc_987654321"
+            filename:
+              type: string
+              example: "requirements_document.pdf"
+            size:
+              type: integer
+              example: 2048576
+              description: File size in bytes
+            mimeType:
+              type: string
+              example: "application/pdf"
+            description:
+              type: string
+              example: "Initial product requirements and specifications"
+            uploadedAt:
+              type: string
+              format: date-time
+              example: "2024-12-19T10:35:00.000Z"
+            processingStatus:
+              type: string
+              enum: [queued, processing, completed, failed]
+              example: "queued"
+            estimatedProcessingTime:
+              type: string
+              example: "2-3 minutes"
+
+    ListDocumentsResponse:
+      type: object
+      required:
+        - success
+        - data
+        - totalDocuments
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/DocumentSummary'
+        totalDocuments:
+          type: integer
+          example: 2
+
+    DocumentSummary:
+      type: object
+      required:
+        - docId
+        - filename
+        - size
+        - mimeType
+        - uploadedAt
+        - processingStatus
+      properties:
+        docId:
+          type: string
+          example: "doc_987654321"
+        filename:
+          type: string
+          example: "requirements_document.pdf"
+        size:
+          type: integer
+          example: 2048576
+        mimeType:
+          type: string
+          example: "application/pdf"
+        description:
+          type: string
+          example: "Initial product requirements and specifications"
+        uploadedAt:
+          type: string
+          format: date-time
+          example: "2024-12-19T10:35:00.000Z"
+        processingStatus:
+          type: string
+          enum: [queued, processing, completed, failed]
+          example: "completed"
+        extractedPages:
+          type: integer
+          example: 15
+        extractedWords:
+          type: integer
+          example: 2543
+        progress:
+          type: integer
+          minimum: 0
+          maximum: 100
+          example: 65
+
+    DocumentDetailResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/DocumentDetail'
+
+    DocumentDetail:
+      type: object
+      required:
+        - docId
+        - filename
+        - size
+        - mimeType
+        - uploadedAt
+        - processingStatus
+      properties:
+        docId:
+          type: string
+          example: "doc_987654321"
+        filename:
+          type: string
+          example: "requirements_document.pdf"
+        size:
+          type: integer
+          example: 2048576
+        mimeType:
+          type: string
+          example: "application/pdf"
+        description:
+          type: string
+          example: "Initial product requirements and specifications"
+        uploadedAt:
+          type: string
+          format: date-time
+          example: "2024-12-19T10:35:00.000Z"
+        processedAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2024-12-19T10:37:30.000Z"
+        processingStatus:
+          type: string
+          enum: [queued, processing, completed, failed]
+          example: "completed"
+        extractedContent:
+          type: object
+          nullable: true
+          properties:
+            pages:
+              type: integer
+              example: 15
+            words:
+              type: integer
+              example: 2543
+            characters:
+              type: integer
+              example: 15875
+            sections:
+              type: integer
+              example: 8
+        analysis:
+          type: object
+          nullable: true
+          properties:
+            keyTopics:
+              type: array
+              items:
+                type: string
+              example: ["user authentication", "payment processing", "mobile app", "API design"]
+            requirements:
+              type: integer
+              example: 23
+            features:
+              type: integer
+              example: 12
+            technicalSpecs:
+              type: integer
+              example: 8
+
+    DocumentContentResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          required:
+            - docId
+            - extractedContent
+            - processedAt
+          properties:
+            docId:
+              type: string
+              example: "doc_987654321"
+            extractedContent:
+              type: object
+              required:
+                - text
+                - sections
+                - metadata
+              properties:
+                text:
+                  type: string
+                  example: "Product Requirements Document\n\n1. Introduction\nThis document outlines the requirements for an AI-powered customer support platform..."
+                sections:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/DocumentSection'
+                metadata:
+                  type: object
+                  properties:
+                    author:
+                      type: string
+                      example: "John Smith"
+                    createdDate:
+                      type: string
+                      format: date
+                      example: "2024-12-15"
+                    lastModified:
+                      type: string
+                      format: date
+                      example: "2024-12-18"
+                    version:
+                      type: string
+                      example: "1.0"
+            processedAt:
+              type: string
+              format: date-time
+              example: "2024-12-19T10:37:30.000Z"
+
+    DocumentSection:
+      type: object
+      required:
+        - title
+        - content
+        - pageStart
+        - pageEnd
+      properties:
+        title:
+          type: string
+          example: "Introduction"
+        content:
+          type: string
+          example: "This document outlines the requirements..."
+        pageStart:
+          type: integer
+          example: 1
+        pageEnd:
+          type: integer
+          example: 2
+
+    DeleteDocumentResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          required:
+            - docId
+            - message
+            - deletedAt
+          properties:
+            docId:
+              type: string
+              example: "doc_987654321"
+            message:
+              type: string
+              example: "Document deleted successfully"
+            deletedAt:
+              type: string
+              format: date-time
+              example: "2024-12-19T13:20:00.000Z"
+
+    ErrorResponse:
+      type: object
+      required:
+        - success
+        - error
+        - metadata
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              example: "RESOURCE_NOT_FOUND"
+            message:
+              type: string
+              example: "Document with ID 'doc_invalid-id' not found"
+            details:
+              type: object
+        metadata:
+          type: object
+          required:
+            - timestamp
+            - requestId
+          properties:
+            timestamp:
+              type: string
+              format: date-time
+              example: "2024-12-19T10:30:00Z"
+            requestId:
+              type: string
+              example: "req_12345678-90ab-cdef-1234-567890abcdef"
+            path:
+              type: string
+              example: "/api/v1/projects/proj_123/documents/doc_456"

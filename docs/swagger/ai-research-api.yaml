@@ -1,0 +1,458 @@
+openapi: 3.0.3
+info:
+  title: TX-BE AI Research API
+  description: AI research phase endpoints for market analysis and technical planning
+  version: 1.0.0
+  contact:
+    name: TX-BE API Support
+    email: support@tx-be.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.tx-be.com
+    description: Production server
+  - url: https://staging-api.tx-be.com
+    description: Staging server
+  - url: http://localhost:3000
+    description: Local development server
+
+tags:
+  - name: Research
+    description: AI research operations for market analysis and technical planning
+
+paths:
+  /api/v1/projects/{projectId}/research/start:
+    post:
+      tags:
+        - Research
+      summary: Start AI research process
+      description: Start the AI research process for market analysis and technical planning
+      operationId: startResearch
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          description: Project ID
+          schema:
+            type: string
+            pattern: '^proj_[a-zA-Z0-9\-]+$'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartResearchRequest'
+            example:
+              researchAreas: ["market_analysis", "technical_requirements", "user_journey", "feature_prioritization", "architecture_planning"]
+              depth: "comprehensive"
+              includeCompetitorAnalysis: true
+      responses:
+        '202':
+          description: Research process started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StartResearchResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/projects/{projectId}/research/status:
+    get:
+      tags:
+        - Research
+      summary: Get research status
+      description: Get current status of the research process
+      operationId: getResearchStatus
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          description: Project ID
+          schema:
+            type: string
+            pattern: '^proj_[a-zA-Z0-9\-]+$'
+      responses:
+        '200':
+          description: Research status retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResearchStatusResponse'
+        '404':
+          description: Project or research session not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/projects/{projectId}/research/results:
+    get:
+      tags:
+        - Research
+      summary: Get research results
+      description: Get AI research insights and findings
+      operationId: getResearchResults
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          description: Project ID
+          schema:
+            type: string
+            pattern: '^proj_[a-zA-Z0-9\-]+$'
+      responses:
+        '200':
+          description: Research results retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResearchResultsResponse'
+        '202':
+          description: Research still in progress
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "Research is still in progress"
+                  status:
+                    type: string
+                    example: "in_progress"
+        '404':
+          description: Project or research session not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    StartResearchRequest:
+      type: object
+      required:
+        - researchAreas
+        - depth
+      properties:
+        researchAreas:
+          type: array
+          items:
+            type: string
+            enum: [market_analysis, technical_requirements, user_journey, feature_prioritization, architecture_planning, competitor_analysis]
+          minItems: 1
+          description: Areas to focus research on
+        depth:
+          type: string
+          enum: [basic, standard, comprehensive]
+          description: Depth of research analysis
+        includeCompetitorAnalysis:
+          type: boolean
+          default: true
+          description: Whether to include competitor analysis
+
+    StartResearchResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          required:
+            - researchId
+            - status
+            - estimatedDuration
+            - nextStep
+            - startedAt
+          properties:
+            researchId:
+              type: string
+              example: "research_abc123def456"
+            status:
+              type: string
+              enum: [started, in_progress, completed, failed]
+              example: "started"
+            estimatedDuration:
+              type: string
+              example: "2-3 minutes"
+            nextStep:
+              type: string
+              example: "research_in_progress"
+            startedAt:
+              type: string
+              format: date-time
+              example: "2024-12-19T10:45:00.000Z"
+
+    ResearchStatusResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          required:
+            - status
+            - progress
+            - currentStep
+            - researchAreas
+          properties:
+            status:
+              type: string
+              enum: [pending, in_progress, completed, failed]
+              example: "in_progress"
+            progress:
+              type: integer
+              minimum: 0
+              maximum: 100
+              example: 75
+            currentStep:
+              type: string
+              example: "Feature Prioritization"
+            researchAreas:
+              type: array
+              items:
+                $ref: '#/components/schemas/ResearchArea'
+            estimatedCompletion:
+              type: string
+              format: date-time
+              nullable: true
+              example: "2024-12-19T10:49:00.000Z"
+
+    ResearchArea:
+      type: object
+      required:
+        - name
+        - description
+        - status
+        - progress
+      properties:
+        name:
+          type: string
+          example: "Market Analysis"
+        description:
+          type: string
+          example: "Analyzing target market and competitors"
+        status:
+          type: string
+          enum: [pending, in_progress, completed, failed]
+          example: "completed"
+        progress:
+          type: integer
+          minimum: 0
+          maximum: 100
+          example: 100
+        startedAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2024-12-19T10:45:30.000Z"
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2024-12-19T10:46:30.000Z"
+
+    ResearchResultsResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          required:
+            - researchId
+            - completedAt
+            - insights
+            - marketAnalysis
+            - technicalRecommendations
+            - featurePrioritization
+          properties:
+            researchId:
+              type: string
+              example: "research_abc123def456"
+            completedAt:
+              type: string
+              format: date-time
+              example: "2024-12-19T10:48:30.000Z"
+            insights:
+              type: array
+              items:
+                type: string
+              example:
+                - "The customer support automation market is growing at 25% CAGR, indicating strong demand for AI-powered solutions."
+                - "Key competitors like Intercom and Zendesk have high pricing, creating opportunity for cost-effective solutions."
+                - "Small-medium businesses prefer simple setup and integration over complex enterprise features."
+            marketAnalysis:
+              $ref: '#/components/schemas/MarketAnalysis'
+            technicalRecommendations:
+              $ref: '#/components/schemas/TechnicalRecommendations'
+            featurePrioritization:
+              type: array
+              items:
+                $ref: '#/components/schemas/FeaturePriority'
+
+    MarketAnalysis:
+      type: object
+      required:
+        - marketSize
+        - growthRate
+        - keyTrends
+        - competitors
+      properties:
+        marketSize:
+          type: string
+          example: "$4.2B by 2026"
+        growthRate:
+          type: string
+          example: "25% CAGR"
+        keyTrends:
+          type: array
+          items:
+            type: string
+          example: ["AI integration", "Omnichannel support", "Self-service options"]
+        competitors:
+          type: array
+          items:
+            $ref: '#/components/schemas/Competitor'
+
+    Competitor:
+      type: object
+      required:
+        - name
+        - marketShare
+        - strengths
+        - weaknesses
+      properties:
+        name:
+          type: string
+          example: "Intercom"
+        marketShare:
+          type: string
+          example: "15%"
+        strengths:
+          type: array
+          items:
+            type: string
+          example: ["Brand recognition", "Feature completeness"]
+        weaknesses:
+          type: array
+          items:
+            type: string
+          example: ["High pricing", "Complex setup"]
+
+    TechnicalRecommendations:
+      type: object
+      required:
+        - architecture
+        - aiServices
+        - database
+        - deployment
+      properties:
+        architecture:
+          type: string
+          example: "Microservices with API Gateway"
+        aiServices:
+          type: string
+          example: "OpenAI GPT-4 for NLP, custom training for domain-specific responses"
+        database:
+          type: string
+          example: "MongoDB for conversations, Redis for caching"
+        deployment:
+          type: string
+          example: "AWS with auto-scaling containers"
+
+    FeaturePriority:
+      type: object
+      required:
+        - feature
+        - priority
+        - effort
+        - impact
+        - reasoning
+      properties:
+        feature:
+          type: string
+          example: "AI Chat Interface"
+        priority:
+          type: string
+          enum: [P0, P1, P2, P3]
+          example: "P0"
+        effort:
+          type: string
+          enum: [Low, Medium, High]
+          example: "High"
+        impact:
+          type: string
+          enum: [Low, Medium, High]
+          example: "High"
+        reasoning:
+          type: string
+          example: "Core functionality essential for MVP"
+
+    ErrorResponse:
+      type: object
+      required:
+        - success
+        - error
+        - metadata
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              example: "RESOURCE_NOT_FOUND"
+            message:
+              type: string
+              example: "Project with ID 'proj_invalid-id' not found"
+            details:
+              type: object
+        metadata:
+          type: object
+          required:
+            - timestamp
+            - requestId
+          properties:
+            timestamp:
+              type: string
+              format: date-time
+              example: "2024-12-19T10:30:00Z"
+            requestId:
+              type: string
+              example: "req_12345678-90ab-cdef-1234-567890abcdef"
+            path:
+              type: string
+              example: "/api/v1/projects/proj_123/research/start"
