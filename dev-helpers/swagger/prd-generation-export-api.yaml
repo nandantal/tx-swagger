@@ -1,0 +1,590 @@
+openapi: 3.0.3
+info:
+  title: TX-BE PRD Generation & Export API
+  description: PRD generation and export endpoints for the AI Product Development Assistant
+  version: 1.0.0
+  contact:
+    name: TX-BE API Support
+    email: support@tx-be.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.tx-be.com
+    description: Production server
+  - url: https://staging-api.tx-be.com
+    description: Staging server
+  - url: http://localhost:3000
+    description: Local development server
+
+tags:
+  - name: PRD Generation
+    description: Product Requirements Document generation operations
+  - name: Export
+    description: Export and download operations
+
+paths:
+  /api/v1/projects/{projectId}/generate/prd:
+    post:
+      tags:
+        - PRD Generation
+      summary: Generate PRD
+      description: Generate the final Product Requirements Document
+      operationId: generatePRD
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          description: Project ID
+          schema:
+            type: string
+            pattern: '^proj_[a-zA-Z0-9\-]+$'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GeneratePRDRequest'
+            example:
+              includeArchitectureDiagrams: true
+              includeTechnicalSpecs: true
+              includeImplementationRoadmap: true
+              outputFormat: "comprehensive"
+      responses:
+        '202':
+          description: PRD generation started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GeneratePRDResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '412':
+          description: Prerequisites not met (research or clarification incomplete)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/projects/{projectId}/generate/status:
+    get:
+      tags:
+        - PRD Generation
+      summary: Get PRD generation status
+      description: Get current status of PRD generation
+      operationId: getPRDGenerationStatus
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          description: Project ID
+          schema:
+            type: string
+            pattern: '^proj_[a-zA-Z0-9\-]+$'
+      responses:
+        '200':
+          description: PRD generation status retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PRDGenerationStatusResponse'
+        '404':
+          description: Project or generation session not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/projects/{projectId}/export/markdown:
+    get:
+      tags:
+        - Export
+      summary: Download PRD as Markdown
+      description: Download the complete PRD as a markdown file
+      operationId: exportMarkdown
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          description: Project ID
+          schema:
+            type: string
+            pattern: '^proj_[a-zA-Z0-9\-]+$'
+      responses:
+        '200':
+          description: Markdown file download
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+          headers:
+            Content-Disposition:
+              description: Attachment filename
+              schema:
+                type: string
+                example: 'attachment; filename="AI_Chatbot_Platform_PRD_20241219.md"'
+            Content-Length:
+              description: File size in bytes
+              schema:
+                type: integer
+                example: 28543
+        '404':
+          description: Project not found or PRD not generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '412':
+          description: PRD generation not completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/projects/{projectId}/export/diagrams:
+    get:
+      tags:
+        - Export
+      summary: Get generated diagrams
+      description: Get all generated diagrams and their metadata
+      operationId: exportDiagrams
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          description: Project ID
+          schema:
+            type: string
+            pattern: '^proj_[a-zA-Z0-9\-]+$'
+      responses:
+        '200':
+          description: Diagrams and metadata retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DiagramsExportResponse'
+        '404':
+          description: Project not found or diagrams not generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/projects/{projectId}/diagrams/{diagramType}:
+    get:
+      tags:
+        - Export
+      summary: Get specific diagram
+      description: Get a specific diagram by type
+      operationId: getDiagram
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          description: Project ID
+          schema:
+            type: string
+            pattern: '^proj_[a-zA-Z0-9\-]+$'
+        - name: diagramType
+          in: path
+          required: true
+          description: Type of diagram
+          schema:
+            type: string
+            enum: [system-architecture, data-flow, user-journey, deployment]
+      responses:
+        '200':
+          description: Diagram retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DiagramResponse'
+        '404':
+          description: Project or diagram not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/projects/{projectId}/diagrams/export:
+    get:
+      tags:
+        - Export
+      summary: Export diagrams in various formats
+      description: Export diagrams in SVG, PNG, or PDF format
+      operationId: exportDiagramsFormat
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          description: Project ID
+          schema:
+            type: string
+            pattern: '^proj_[a-zA-Z0-9\-]+$'
+        - name: format
+          in: query
+          required: true
+          description: Export format
+          schema:
+            type: string
+            enum: [svg, png, pdf]
+        - name: diagramType
+          in: query
+          description: Specific diagram type to export (if not provided, exports all)
+          schema:
+            type: string
+            enum: [system-architecture, data-flow, user-journey, deployment]
+      responses:
+        '200':
+          description: Diagrams exported successfully
+          content:
+            application/zip:
+              schema:
+                type: string
+                format: binary
+            image/svg+xml:
+              schema:
+                type: string
+                format: binary
+            image/png:
+              schema:
+                type: string
+                format: binary
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+          headers:
+            Content-Disposition:
+              description: Attachment filename
+              schema:
+                type: string
+                example: 'attachment; filename="diagrams.zip"'
+        '404':
+          description: Project or diagrams not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    GeneratePRDRequest:
+      type: object
+      properties:
+        includeArchitectureDiagrams:
+          type: boolean
+          default: true
+          description: Whether to include architecture diagrams
+        includeTechnicalSpecs:
+          type: boolean
+          default: true
+          description: Whether to include detailed technical specifications
+        includeImplementationRoadmap:
+          type: boolean
+          default: true
+          description: Whether to include implementation roadmap
+        outputFormat:
+          type: string
+          enum: [basic, standard, comprehensive]
+          default: "comprehensive"
+          description: Level of detail in the generated PRD
+        customSections:
+          type: array
+          items:
+            type: string
+          description: Additional custom sections to include
+
+    GeneratePRDResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          required:
+            - generationId
+            - status
+            - estimatedDuration
+            - phases
+            - startedAt
+          properties:
+            generationId:
+              type: string
+              example: "gen_prd_456789abc123"
+            status:
+              type: string
+              enum: [started, in_progress, completed, failed]
+              example: "started"
+            estimatedDuration:
+              type: string
+              example: "3-5 minutes"
+            phases:
+              type: array
+              items:
+                type: string
+              example: ["content_structuring", "detailed_requirements", "technical_specifications", "architecture_diagrams", "implementation_planning", "final_review"]
+            startedAt:
+              type: string
+              format: date-time
+              example: "2024-12-19T11:30:00.000Z"
+
+    PRDGenerationStatusResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          required:
+            - generationId
+            - status
+            - progress
+            - currentPhase
+            - phases
+          properties:
+            generationId:
+              type: string
+              example: "gen_prd_456789abc123"
+            status:
+              type: string
+              enum: [pending, in_progress, completed, failed]
+              example: "in_progress"
+            progress:
+              type: integer
+              minimum: 0
+              maximum: 100
+              example: 65
+            currentPhase:
+              type: string
+              example: "architecture_diagrams"
+            phases:
+              type: array
+              items:
+                $ref: '#/components/schemas/GenerationPhase'
+            estimatedCompletion:
+              type: string
+              format: date-time
+              nullable: true
+              example: "2024-12-19T11:37:00.000Z"
+
+    GenerationPhase:
+      type: object
+      required:
+        - name
+        - description
+        - status
+        - progress
+      properties:
+        name:
+          type: string
+          example: "content_structuring"
+        description:
+          type: string
+          example: "Organizing research and clarification data"
+        status:
+          type: string
+          enum: [pending, in_progress, completed, failed]
+          example: "completed"
+        progress:
+          type: integer
+          minimum: 0
+          maximum: 100
+          example: 100
+        startedAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2024-12-19T11:30:30.000Z"
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2024-12-19T11:31:30.000Z"
+
+    DiagramsExportResponse:
+      type: object
+      required:
+        - success
+        - data
+        - links
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          required:
+            - projectId
+            - projectName
+            - generatedAt
+            - diagrams
+            - metadata
+          properties:
+            projectId:
+              type: string
+              example: "proj_a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+            projectName:
+              type: string
+              example: "AI-Powered Customer Support Chatbot Platform"
+            generatedAt:
+              type: string
+              format: date-time
+              example: "2024-12-19T10:30:00Z"
+            diagrams:
+              type: object
+              additionalProperties:
+                $ref: '#/components/schemas/DiagramInfo'
+            metadata:
+              type: object
+              required:
+                - totalDiagrams
+                - generationTime
+                - diagramFormats
+                - exportOptions
+              properties:
+                totalDiagrams:
+                  type: integer
+                  example: 2
+                generationTime:
+                  type: string
+                  example: "12.3s"
+                diagramFormats:
+                  type: array
+                  items:
+                    type: string
+                  example: ["mermaid"]
+                exportOptions:
+                  type: object
+                  properties:
+                    individual:
+                      type: boolean
+                      example: true
+                    combined:
+                      type: boolean
+                      example: true
+                    formats:
+                      type: array
+                      items:
+                        type: string
+                      example: ["svg", "png", "pdf"]
+        links:
+          type: object
+          properties:
+            individualDiagrams:
+              type: object
+              additionalProperties:
+                type: string
+            exportFormats:
+              type: object
+              additionalProperties:
+                type: string
+
+    DiagramInfo:
+      type: object
+      required:
+        - title
+        - type
+        - mermaidCode
+        - description
+        - metadata
+      properties:
+        title:
+          type: string
+          example: "System Architecture Diagram"
+        type:
+          type: string
+          enum: [architecture, dataflow, sequence, entity-relationship, user-journey, deployment]
+          example: "architecture"
+        mermaidCode:
+          type: string
+          example: "graph TB\n    subgraph \"Client Layer\"\n        A[Web Chat Widget]\n        B[Mobile App]\n    end"
+        description:
+          type: string
+          example: "High-level system architecture showing the main components and their interactions"
+        metadata:
+          type: object
+          properties:
+            nodeCount:
+              type: integer
+              example: 22
+            complexity:
+              type: string
+              enum: [low, medium, high]
+              example: "medium"
+            estimatedRenderTime:
+              type: string
+              example: "2.3s"
+
+    DiagramResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          $ref: '#/components/schemas/DiagramInfo'
+
+    ErrorResponse:
+      type: object
+      required:
+        - success
+        - error
+        - metadata
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              example: "RESOURCE_NOT_FOUND"
+            message:
+              type: string
+              example: "Project with ID 'proj_invalid-id' not found"
+            details:
+              type: object
+        metadata:
+          type: object
+          required:
+            - timestamp
+            - requestId
+          properties:
+            timestamp:
+              type: string
+              format: date-time
+              example: "2024-12-19T10:30:00Z"
+            requestId:
+              type: string
+              example: "req_12345678-90ab-cdef-1234-567890abcdef"
+            path:
+              type: string
+              example: "/api/v1/projects/proj_123/generate/prd"

@@ -1,0 +1,149 @@
+openapi: 3.0.3
+info:
+  title: TX-BE Health Check API
+  description: Health check endpoints for the AI Product Development Assistant backend service
+  version: 1.0.0
+  contact:
+    name: TX-BE API Support
+    email: support@tx-be.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.tx-be.com
+    description: Production server
+  - url: https://staging-api.tx-be.com
+    description: Staging server
+  - url: http://localhost:3000
+    description: Local development server
+
+tags:
+  - name: Health
+    description: Health check and system status endpoints
+
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Comprehensive health check
+      description: Performs a comprehensive health check of the application including database connectivity
+      operationId: getHealthStatus
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                isHealthy: true
+                timestamp: "2024-12-19T10:30:00.000Z"
+                errorMessage: null
+                status:
+                  service: "up"
+                  database: "up"
+        '503':
+          description: Service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                isHealthy: false
+                timestamp: "2024-12-19T10:30:00.000Z"
+                errorMessage: "Database connection failed"
+                status:
+                  service: "up"
+                  database: "down"
+
+  /:
+    get:
+      tags:
+        - Health
+      summary: Simple ping endpoint
+      description: Simple ping endpoint to check server status and get service description
+      operationId: pingService
+      responses:
+        '200':
+          description: Service is running
+          content:
+            text/plain:
+              schema:
+                type: string
+              example: "TX-BE API is running! This is the backend service for the AI Product Development Assistant."
+
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      required:
+        - isHealthy
+        - timestamp
+        - status
+      properties:
+        isHealthy:
+          type: boolean
+          description: Overall health status of the service
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp when the health check was performed
+        errorMessage:
+          type: string
+          nullable: true
+          description: Error message if service is unhealthy
+        status:
+          type: object
+          required:
+            - service
+            - database
+          properties:
+            service:
+              type: string
+              enum: [up, down]
+              description: Status of the main service
+            database:
+              type: string
+              enum: [up, down]
+              description: Status of the database connection
+
+    ErrorResponse:
+      type: object
+      required:
+        - success
+        - error
+        - metadata
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              description: Error code identifier
+            message:
+              type: string
+              description: Human-readable error message
+            details:
+              type: object
+              description: Additional error details
+        metadata:
+          type: object
+          required:
+            - timestamp
+            - requestId
+          properties:
+            timestamp:
+              type: string
+              format: date-time
+            requestId:
+              type: string
+            path:
+              type: string
